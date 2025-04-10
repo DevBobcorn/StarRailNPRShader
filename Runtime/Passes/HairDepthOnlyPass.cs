@@ -24,6 +24,7 @@ using HSR.NPRShader.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -39,10 +40,10 @@ namespace HSR.NPRShader.Passes
 
         private static readonly ShaderTagId s_ShaderTagId = new("HSRHairDepthOnly");
 
-        private FilteringSettings m_FilteringSettings;
+        private readonly FilteringSettings m_FilteringSettings;
         private DownscaleMode m_DownscaleMode;
         private DepthBits m_DepthBits;
-        private RTHandle m_DepthRT;
+        //private RTHandle m_DepthRT;
 
         public HairDepthOnlyPass()
         {
@@ -54,7 +55,7 @@ namespace HSR.NPRShader.Passes
 
         public void Dispose()
         {
-            m_DepthRT?.Release();
+            //m_DepthRT?.Release();
         }
 
         public void Setup(DownscaleMode downscaleMode, DepthBits depthBits)
@@ -63,6 +64,7 @@ namespace HSR.NPRShader.Passes
             m_DepthBits = depthBits;
         }
 
+        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -82,7 +84,9 @@ namespace HSR.NPRShader.Passes
             ConfigureTarget(m_DepthRT);
             ConfigureClear(ClearFlag.All, Color.black);
         }
+        */
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -105,7 +109,65 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+        */
 
+        private class PassData
+        {
+            internal RendererListHandle rendererListHandle;
+            internal TextureHandle renderTarget; // Depth render target
+        }
+
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                // Configure
+                var renderingData = frameData.Get<UniversalRenderingData>();
+                var cameraData = frameData.Get<UniversalCameraData>();
+                var lightData = frameData.Get<UniversalLightData>();
+            
+                var depthDesc = cameraData.cameraTargetDescriptor;
+                depthDesc.width /= (int)m_DownscaleMode;
+                depthDesc.height /= (int)m_DownscaleMode;
+                depthDesc.msaaSamples = 1;
+                depthDesc.graphicsFormat = GraphicsFormat.None;
+
+                int depthBits = Mathf.Max((int)m_DepthBits, (int)DepthBits.Depth8);
+                depthDesc.depthStencilFormat = GraphicsFormatUtility.GetDepthStencilFormat(depthBits, 0);
+                
+                //RenderingUtils.ReAllocateHandleIfNeeded(ref m_DepthRT, in depthDesc, FilterMode.Point, TextureWrapMode.Clamp, name: "_HairDepthTexture");
+                passData.renderTarget = UniversalRenderer.CreateRenderGraphTexture(renderGraph, depthDesc, "_HairDepthTexture", true, FilterMode.Point, TextureWrapMode.Clamp);
+
+                var sortFlags = cameraData.defaultOpaqueSortFlags;
+                var drawSettings = RenderingUtils.CreateDrawingSettings(s_ShaderTagId, renderingData, cameraData, lightData, sortFlags);
+                drawSettings.perObjectData = PerObjectData.None;
+                
+                var rendererListParameters = new RendererListParams(renderingData.cullResults, drawSettings, m_FilteringSettings);
+                var rendererListHandle = renderGraph.CreateRendererList(rendererListParameters);
+                passData.rendererListHandle = rendererListHandle;
+                
+                builder.UseRendererList(passData.rendererListHandle);
+                builder.AllowPassCulling(false);
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
+                
+                builder.SetRenderAttachment(passData.renderTarget, 0, AccessFlags.Write);
+                //builder.CreateTransientTexture(passData.renderTarget);
+                builder.SetGlobalTextureAfterPass(passData.renderTarget, PropertyIds._HairDepthTexture);
+            }
+        }
+        
+        private void ExecutePass(PassData passData, RasterGraphContext context)
+        {
+            var cmd = context.cmd;
+            
+            cmd.ClearRenderTarget(true, true, Color.black);
+
+            using (new ProfilingScope(cmd, profilingSampler))
+            {
+                cmd.DrawRendererList(passData.rendererListHandle);
+            }
+        }
+        
         private static class PropertyIds
         {
             public static readonly int _HairDepthTexture = MemberNameHelpers.ShaderPropertyID();
