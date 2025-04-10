@@ -21,6 +21,7 @@
 
 using HSR.NPRShader.PerObjectShadow;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes

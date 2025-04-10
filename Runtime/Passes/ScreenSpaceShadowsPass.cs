@@ -59,11 +59,11 @@ namespace HSR.NPRShader.Passes
             desc.depthBufferBits = 0;
             desc.msaaSamples = 1;
             desc.graphicsFormat =
-                RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.R8_UNorm, FormatUsage.Linear | FormatUsage.Render)
+                SystemInfo.IsFormatSupported(GraphicsFormat.R8_UNorm, GraphicsFormatUsage.Linear | GraphicsFormatUsage.Render)
                     ? GraphicsFormat.R8_UNorm
                     : GraphicsFormat.B8G8R8A8_UNorm;
 
-            RenderingUtils.ReAllocateIfNeeded(ref m_RenderTarget, desc, FilterMode.Point, TextureWrapMode.Clamp,
+            RenderingUtils.ReAllocateHandleIfNeeded(ref m_RenderTarget, desc, FilterMode.Point, TextureWrapMode.Clamp,
                 name: "_ScreenSpaceShadowmapTexture");
             cmd.SetGlobalTexture(m_RenderTarget.name, m_RenderTarget.nameID);
 

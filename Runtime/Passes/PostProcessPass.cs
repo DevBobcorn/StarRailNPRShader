@@ -74,7 +74,7 @@ namespace HSR.NPRShader.Passes
             }
 
             // Texture format pre-lookup
-            const FormatUsage usage = FormatUsage.Linear | FormatUsage.Render;
+            const GraphicsFormatUsage usage = GraphicsFormatUsage.Linear | GraphicsFormatUsage.Render;
             if (SystemInfo.IsFormatSupported(GraphicsFormat.B10G11R11_UFloatPack32, usage))
             {
                 m_DefaultHDRFormat = GraphicsFormat.B10G11R11_UFloatPack32;
@@ -170,7 +170,7 @@ namespace HSR.NPRShader.Passes
                     mipDesc.height = Mathf.Max(1, mipDesc.height >> 1);
                 }
 
-                RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipDown[i], in mipDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
+                RenderingUtils.ReAllocateHandleIfNeeded(ref m_BloomMipDown[i], in mipDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
             }
         }
 
@@ -189,9 +189,9 @@ namespace HSR.NPRShader.Passes
             atlasDesc.width = Mathf.CeilToInt(1.5f * baseSize.x) + BloomAtlasPadding;
             atlasDesc.height = Mathf.CeilToInt(baseSize.y);
 
-            RenderingUtils.ReAllocateIfNeeded(ref m_BloomAtlas1, in atlasDesc, FilterMode.Bilinear, TextureWrapMode.Clamp,
+            RenderingUtils.ReAllocateHandleIfNeeded(ref m_BloomAtlas1, in atlasDesc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                 name: "BloomAtlas1");
-            RenderingUtils.ReAllocateIfNeeded(ref m_BloomAtlas2, in atlasDesc, FilterMode.Bilinear, TextureWrapMode.Clamp,
+            RenderingUtils.ReAllocateHandleIfNeeded(ref m_BloomAtlas2, in atlasDesc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                 name: "BloomAtlas2");
 
             m_BloomAtlasViewports[0] = new Rect(Vector2.zero, baseSize);
@@ -216,7 +216,7 @@ namespace HSR.NPRShader.Passes
 
             RenderTextureDescriptor desc = cameraTextureDescriptor;
             desc.depthBufferBits = (int)DepthBits.None;
-            RenderingUtils.ReAllocateIfNeeded(ref m_BloomCharacterColor, in desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: "_BloomCharacterColor");
+            RenderingUtils.ReAllocateHandleIfNeeded(ref m_BloomCharacterColor, in desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: "_BloomCharacterColor");
         }
 
         private static Vector4 ViewportToUVMinMax(Rect rect, float textureWidth, float textureHeight)
@@ -294,7 +294,8 @@ namespace HSR.NPRShader.Passes
                     colorTargetHandle = m_BloomCharacterColor;
                 }
 
-                CoreUtils.SetKeyword(material, ShaderKeywordStrings.UseRGBM, m_UseRGBM);
+                const string UseRGBM = "_USE_RGBM"; // TODO: Check validity
+                CoreUtils.SetKeyword(material, UseRGBM, m_UseRGBM);
 
                 cmd.SetGlobalFloat(PropertyIds._BloomThreshold, m_BloomConfig.Threshold.value);
                 cmd.SetGlobalFloat(PropertyIds._BloomClampMax, m_BloomConfig.Clamp.value);

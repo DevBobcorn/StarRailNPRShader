@@ -28,7 +28,8 @@ namespace HSR.NPRShader.PostProcessing
 {
     [Serializable]
     [HelpURL("https://srshader.stalomeow.com/")]
-    [VolumeComponentMenuForRenderPipeline("Honkai Star Rail/Tonemapping", typeof(UniversalRenderPipeline))]
+    [VolumeComponentMenu("Honkai Star Rail/Tonemapping")]
+    [SupportedOnRenderPipeline]
     public class CustomTonemapping : VolumeComponent, IPostProcessComponent
     {
         public CustomTonemappingModeParameter Mode = new(CustomTonemappingMode.None);

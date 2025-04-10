@@ -23,13 +23,13 @@ using System;
 using HSR.NPRShader.Passes;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.PostProcessing
 {
     [Serializable]
     [HelpURL("https://srshader.stalomeow.com/")]
-    [VolumeComponentMenuForRenderPipeline("Honkai Star Rail/Bloom", typeof(UniversalRenderPipeline))]
+    [VolumeComponentMenu("Honkai Star Rail/Bloom")]
+    [SupportedOnRenderPipeline]
     public class CustomBloom : VolumeComponent, IPostProcessComponent
     {
         public MinFloatParameter Intensity = new(0, 0);

@@ -34,7 +34,7 @@ namespace HSR.NPRShader
     public class StarRailRendererFeature : ScriptableRendererFeature
     {
 #if UNITY_EDITOR
-        [UnityEditor.ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2)]
+        //[UnityEditor.ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2)] // No longer necessary
         [UnityEditor.ShaderKeywordFilter.SelectIf(true, keywordNames: ShaderKeywordStrings.MainLightShadowScreen)]
         private const bool k_RequiresScreenSpaceShadowsKeyword = true;
 #endif

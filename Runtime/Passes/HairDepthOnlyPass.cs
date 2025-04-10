@@ -76,7 +76,7 @@ namespace HSR.NPRShader.Passes
             int depthBits = Mathf.Max((int)m_DepthBits, (int)DepthBits.Depth8);
             depthDesc.depthStencilFormat = GraphicsFormatUtility.GetDepthStencilFormat(depthBits, 0);
 
-            RenderingUtils.ReAllocateIfNeeded(ref m_DepthRT, in depthDesc, FilterMode.Point, TextureWrapMode.Clamp,
+            RenderingUtils.ReAllocateHandleIfNeeded(ref m_DepthRT, in depthDesc, FilterMode.Point, TextureWrapMode.Clamp,
                 name: "_HairDepthTexture");
 
             ConfigureTarget(m_DepthRT);
