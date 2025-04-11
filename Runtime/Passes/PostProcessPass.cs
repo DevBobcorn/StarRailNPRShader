@@ -169,8 +169,7 @@ namespace HSR.NPRShader.Passes
             }
             
             var cmd = context.cmd;
-            
-            CommandBuffer nativeCmd = CommandBufferHelpers.GetNativeCommandBuffer(cmd);
+            var nativeCmd = CommandBufferHelpers.GetNativeCommandBuffer(cmd);
             
             ExecuteBloom(nativeCmd, passData.cameraData);
             ExecuteUber(nativeCmd, ref passData.renderingData, passData.cameraData, passData.postProcessingData);

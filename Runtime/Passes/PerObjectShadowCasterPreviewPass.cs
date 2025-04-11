@@ -62,14 +62,13 @@ namespace HSR.NPRShader.Passes
         {
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
-                
                 builder.AllowPassCulling(false);
                 
-                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
+                builder.SetRenderFunc((PassData _, RasterGraphContext context) => ExecutePass(context));
             }
         }
         
-        private void ExecutePass(PassData _, RasterGraphContext context)
+        private void ExecutePass(RasterGraphContext context)
         {
             var cmd = context.cmd;
             

@@ -24,6 +24,7 @@ using HSR.NPRShader.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -46,13 +47,16 @@ namespace HSR.NPRShader.Passes
             m_RenderTarget?.Release();
         }
 
+        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
 
             ConfigureInput(ScriptableRenderPassInput.Depth);
         }
+        */
 
+        /*
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var desc = renderingData.cameraData.cameraTargetDescriptor;
@@ -70,7 +74,9 @@ namespace HSR.NPRShader.Passes
             ConfigureTarget(m_RenderTarget);
             ConfigureClear(ClearFlag.None, Color.white);
         }
+        */
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             Material material = m_ShadowMaterial.Value;
@@ -86,6 +92,55 @@ namespace HSR.NPRShader.Passes
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+        */
+        
+        private class PassData
+        {
+            internal TextureHandle renderTarget; // Imported texture handle of m_RenderTarget
+        }
+        
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                var cameraData = frameData.Get<UniversalCameraData>();
+                
+                ConfigureInput(ScriptableRenderPassInput.Depth);
+
+                var desc = cameraData.cameraTargetDescriptor;
+                desc.depthBufferBits = 0;
+                desc.msaaSamples = 1;
+                desc.graphicsFormat =
+                    SystemInfo.IsFormatSupported(GraphicsFormat.R8_UNorm, GraphicsFormatUsage.Linear | GraphicsFormatUsage.Render)
+                        ? GraphicsFormat.R8_UNorm
+                        : GraphicsFormat.B8G8R8A8_UNorm;
+
+                RenderingUtils.ReAllocateHandleIfNeeded(ref m_RenderTarget, desc, FilterMode.Point, TextureWrapMode.Clamp,
+                    name: "_ScreenSpaceShadowmapTexture");
+                passData.renderTarget = renderGraph.ImportTexture(m_RenderTarget);
+                builder.UseTexture(passData.renderTarget);
+                
+                builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
+            }
+        }
+        
+        private void ExecutePass(PassData passData, UnsafeGraphContext context)
+        {
+            var cmd = context.cmd;
+            
+            cmd.SetGlobalTexture(m_RenderTarget.name, passData.renderTarget);
+            
+            cmd.SetRenderTarget(passData.renderTarget);
+            cmd.ClearRenderTarget(false, false, Color.white);
+            
+            var nativeCmd = CommandBufferHelpers.GetNativeCommandBuffer(cmd);
+            var material = m_ShadowMaterial.Value;
+            
+            Blitter.BlitCameraTexture(nativeCmd, m_RenderTarget, m_RenderTarget, material, 0);
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadows, false);
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, false);
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowScreen, true);
         }
     }
 }

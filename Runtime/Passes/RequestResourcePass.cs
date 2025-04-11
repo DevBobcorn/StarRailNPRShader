@@ -20,6 +20,7 @@
  */
 
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -32,6 +33,23 @@ namespace HSR.NPRShader.Passes
             ConfigureInput(passInput);
         }
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) { }
+        */
+        
+        private class PassData
+        {
+            // Nothing to store here...
+        }
+        
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                builder.AllowPassCulling(false);
+                
+                builder.SetRenderFunc((PassData _, RasterGraphContext _) => { });
+            }
+        }
     }
 }
