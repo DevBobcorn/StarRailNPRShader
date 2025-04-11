@@ -53,6 +53,27 @@ namespace HSR.NPRShader.Passes
         }
         */
         
+        private class PassData
+        {
+            // Nothing to store here...
+        }
         
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                
+                builder.AllowPassCulling(false);
+                
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
+            }
+        }
+        
+        private void ExecutePass(PassData _, RasterGraphContext context)
+        {
+            var cmd = context.cmd;
+            
+            cmd.SetGlobalInt(PerObjectShadowCasterPass.PropertyIds.ShadowCount(m_Usage), 0);
+        }
     }
 }
