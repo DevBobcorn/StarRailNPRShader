@@ -94,7 +94,7 @@ namespace HSR.NPRShader.Passes
             CommandBufferPool.Release(cmd);
         }
         */
-        
+
         private class PassData
         {
             internal TextureHandle renderTarget; // Imported texture handle of m_RenderTarget
@@ -102,6 +102,12 @@ namespace HSR.NPRShader.Passes
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+            
+            /*
             using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var cameraData = frameData.Get<UniversalCameraData>();
@@ -121,8 +127,11 @@ namespace HSR.NPRShader.Passes
                 passData.renderTarget = renderGraph.ImportTexture(m_RenderTarget);
                 builder.UseTexture(passData.renderTarget);
                 
+                builder.AllowPassCulling(false);
+                
                 builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
             }
+            */
         }
         
         private void ExecutePass(PassData passData, UnsafeGraphContext context)

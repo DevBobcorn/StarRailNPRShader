@@ -131,7 +131,7 @@ namespace HSR.NPRShader.Passes
             CommandBufferPool.Release(cmd);
         }
         */
-        
+
         private class PassData
         {
             internal RenderingData renderingData; // TODO: Remove this after replacing that Blit Method
@@ -141,6 +141,12 @@ namespace HSR.NPRShader.Passes
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+            
+            /*
             using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var cameraData = frameData.Get<UniversalCameraData>();
@@ -159,6 +165,7 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
             }
+            */
         }
         
         private void ExecutePass(PassData passData, UnsafeGraphContext context)

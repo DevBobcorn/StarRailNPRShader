@@ -57,15 +57,22 @@ namespace HSR.NPRShader.Passes
         {
             // Nothing to store here...
         }
-        
+
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+            
+            /*
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
             {
                 builder.AllowPassCulling(false);
                 
                 builder.SetRenderFunc((PassData _, RasterGraphContext context) => ExecutePass(context));
             }
+            */
         }
         
         private void ExecutePass(RasterGraphContext context)

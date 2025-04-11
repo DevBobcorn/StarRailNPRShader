@@ -21,6 +21,7 @@
 
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering.Universal.Internal;
 
@@ -41,5 +42,18 @@ namespace HSR.NPRShader.Passes
             : base(profilerTag, shaderTagIds, isOpaque, evt,
                 isOpaque ? RenderQueueRange.opaque : RenderQueueRange.transparent,
                 layerMask, new StencilState(), 0) { }
+        
+        private class PassData
+        {
+            // Nothing to store here...
+        }
+        
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+        }
     }
 }

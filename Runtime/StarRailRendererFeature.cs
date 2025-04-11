@@ -110,6 +110,8 @@ namespace HSR.NPRShader
             bool enableSelfShadow = m_EnableSelfShadow && !isPreviewCamera;
             bool enableFrontHairShadow = m_EnableFrontHairShadow && !isPreviewCamera;
             bool enableTransparentFrontHair = m_EnableTransparentFrontHair;
+            
+            /*
 
             // BeforeRendering
             renderer.EnqueuePass(enableSelfShadow ? m_EnableSelfShadowPass : m_DisableSelfShadowPass);
@@ -147,6 +149,8 @@ namespace HSR.NPRShader
 
             // BeforeRenderingPostProcessing
             renderer.EnqueuePass(m_PostProcessPass);
+            
+            */
         }
 
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)

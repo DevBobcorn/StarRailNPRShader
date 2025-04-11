@@ -119,6 +119,12 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+
+            /*
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var renderingData = frameData.Get<UniversalRenderingData>();
@@ -148,11 +154,12 @@ namespace HSR.NPRShader.Passes
                 builder.UseRendererList(passData.rendererListHandle);
                 
                 builder.AllowPassCulling(false);
-                builder.SetRenderAttachment(passData.renderTarget, 0, AccessFlags.Write);
+                //builder.SetRenderAttachment(passData.renderTarget, 0, AccessFlags.Write);
                 builder.SetGlobalTextureAfterPass(passData.renderTarget, PropertyIds._HairDepthTexture);
                 
                 builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
             }
+            */
         }
         
         private static void ExecutePass(PassData passData, RasterGraphContext context)

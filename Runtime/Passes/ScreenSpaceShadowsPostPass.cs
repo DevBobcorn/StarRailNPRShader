@@ -20,7 +20,9 @@
  */
 
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -35,11 +37,14 @@ namespace HSR.NPRShader.Passes
             profilingSampler = new ProfilingSampler("ScreenSpaceShadows Post");
         }
 
+        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             ConfigureTarget(k_CurrentActive);
         }
+        */
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -62,6 +67,56 @@ namespace HSR.NPRShader.Passes
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+        */
+
+        private class PassData
+        {
+            internal TextureHandle renderTarget; // Imported texture handle of k_CurrentActive
+            internal UniversalShadowData shadowData;
+        }
+        
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
+            {
+                
+            }
+            
+            /*
+            using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                var shadowData = frameData.Get<UniversalShadowData>();
+                
+                passData.renderTarget = renderGraph.ImportTexture(k_CurrentActive);
+                builder.UseTexture(passData.renderTarget);
+                
+                passData.shadowData = shadowData;
+                
+                builder.AllowPassCulling(false);
+                
+                builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
+            }
+            */
+        }
+        
+        private void ExecutePass(PassData passData, UnsafeGraphContext context)
+        {
+            var cmd = context.cmd;
+            
+            cmd.SetRenderTarget(passData.renderTarget);
+            
+            int cascadesCount = passData.shadowData.mainLightShadowCascadesCount;
+            bool mainLightShadows = passData.shadowData.supportsMainLightShadows;
+            bool receiveShadowsNoCascade = mainLightShadows && cascadesCount == 1;
+            bool receiveShadowsCascades = mainLightShadows && cascadesCount > 1;
+
+            // Before transparent object pass, force to disable screen space shadow of main light
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowScreen, false);
+
+            // then enable main light shadows with or without cascades
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadows, receiveShadowsNoCascade);
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, receiveShadowsCascades);
         }
     }
 }
