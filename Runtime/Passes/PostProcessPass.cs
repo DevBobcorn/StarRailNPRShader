@@ -25,6 +25,7 @@ using HSR.NPRShader.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -97,6 +98,7 @@ namespace HSR.NPRShader.Passes
             ReleaseBloomRTHandles();
         }
 
+        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -107,7 +109,9 @@ namespace HSR.NPRShader.Passes
 
             AllocateBloomRTHandles(in cameraTextureDescriptor);
         }
+        */
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (renderingData.cameraData.isPreviewCamera || !renderingData.cameraData.postProcessEnabled)
@@ -125,6 +129,51 @@ namespace HSR.NPRShader.Passes
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+        */
+        
+        private class PassData
+        {
+            internal RenderingData renderingData; // TODO: Remove this after replacing that Blit Method
+            internal UniversalCameraData cameraData;
+            internal UniversalPostProcessingData postProcessingData;
+        }
+        
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                var cameraData = frameData.Get<UniversalCameraData>();
+                var postProcessingData = frameData.Get<UniversalPostProcessingData>();
+                
+                VolumeStack stack = VolumeManager.instance.stack;
+                m_BloomConfig = stack.GetComponent<CustomBloom>();
+                m_TonemappingConfig = stack.GetComponent<CustomTonemapping>();
+
+                AllocateBloomRTHandles(in cameraData.cameraTargetDescriptor);
+                
+                passData.cameraData = cameraData;
+                passData.postProcessingData = postProcessingData;
+                
+                builder.AllowPassCulling(false);
+                
+                builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
+            }
+        }
+        
+        private void ExecutePass(PassData passData, UnsafeGraphContext context)
+        {
+            if (passData.cameraData.isPreviewCamera || !passData.cameraData.postProcessEnabled)
+            {
+                return;
+            }
+            
+            var cmd = context.cmd;
+            
+            CommandBuffer nativeCmd = CommandBufferHelpers.GetNativeCommandBuffer(cmd);
+            
+            ExecuteBloom(nativeCmd, passData.cameraData);
+            ExecuteUber(nativeCmd, ref passData.renderingData, passData.cameraData, passData.postProcessingData);
         }
 
         #region Bloom
@@ -272,14 +321,15 @@ namespace HSR.NPRShader.Passes
             return m_BloomMipDown[^BloomMipDownBlurCount];
         }
 
-        private void ExecuteBloom(CommandBuffer cmd, ref RenderingData renderingData)
+        [Obsolete("To be updated")]
+        private void ExecuteBloom(CommandBuffer cmd, UniversalCameraData cameraData)
         {
             if (!m_BloomConfig.IsActive())
             {
                 return;
             }
 
-            ScriptableRenderer renderer = renderingData.cameraData.renderer;
+            ScriptableRenderer renderer = cameraData.renderer;
             RTHandle colorTargetHandle = renderer.cameraColorTargetHandle;
             Material material = m_BloomMaterial.Value;
             Vector4 scaleBias = new Vector4(1, 1, 0, 0);
@@ -353,7 +403,8 @@ namespace HSR.NPRShader.Passes
 
         #region Uber
 
-        private void ExecuteUber(CommandBuffer cmd, ref RenderingData renderingData)
+        [Obsolete("To be updated")]
+        private void ExecuteUber(CommandBuffer cmd, ref RenderingData renderingData, UniversalCameraData cameraData, UniversalPostProcessingData postProcessingData)
         {
             Material material = m_UberMaterial.Value;
 
@@ -390,9 +441,11 @@ namespace HSR.NPRShader.Passes
                 }
 
                 CoreUtils.SetKeyword(material, KeywordNames._USE_FAST_SRGB_LINEAR_CONVERSION,
-                    renderingData.postProcessingData.useFastSRGBLinearConversion);
+                    postProcessingData.useFastSRGBLinearConversion);
 
-                Blit(cmd, ref renderingData, material);
+                Blit(cmd, ref renderingData, material); // TODO: Replace with Blitter.BlitCameraTexture
+                //var renderer = cameraData.renderer;
+                //Blitter.BlitCameraTexture(cmd, renderer.cameraColorTargetHandle, renderer.GetCameraColorFrontBuffer(cmd), material, 0);
             }
         }
 
