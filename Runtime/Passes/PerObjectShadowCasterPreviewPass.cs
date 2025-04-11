@@ -38,6 +38,7 @@ namespace HSR.NPRShader.Passes
             m_Usage = usage;
         }
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -50,5 +51,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+        */
+        
+        
     }
 }

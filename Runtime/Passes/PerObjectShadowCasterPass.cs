@@ -23,7 +23,9 @@ using System;
 using HSR.NPRShader.PerObjectShadow;
 using HSR.NPRShader.Utils;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace HSR.NPRShader.Passes
@@ -71,10 +73,12 @@ namespace HSR.NPRShader.Passes
             int shadowRTDepthBits = Mathf.Max((int)depthBits, (int)DepthBits.Depth8);
             ShadowUtils.ShadowRTReAllocateIfNeeded(ref m_ShadowMap, shadowRTSize, shadowRTSize, shadowRTDepthBits);
 
-            ConfigureTarget(m_ShadowMap);
-            ConfigureClear(ClearFlag.All, Color.black);
+            // Render target configuration here is no longer allowed, move it into ExecutePass()
+            //ConfigureTarget(m_ShadowMap);
+            //ConfigureClear(ClearFlag.All, Color.black);
         }
 
+        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -95,7 +99,9 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+        */
 
+        /*
         private void RenderShadowMap(CommandBuffer cmd, ref RenderingData renderingData)
         {
             cmd.SetGlobalDepthBias(1.0f, 2.5f); // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
@@ -134,14 +140,62 @@ namespace HSR.NPRShader.Passes
             cmd.SetGlobalDepthBias(0.0f, 0.0f); // Restore previous depth bias values
             CoreUtils.SetKeyword(cmd, KeywordNames._CASTING_SELF_SHADOW, false);
 
-            cmd.SetGlobalTexture(PropertyIds.ShadowMap(m_CasterManager.Usage), m_ShadowMap);
+            //cmd.SetGlobalTexture(PropertyIds.ShadowMap(m_CasterManager.Usage), m_ShadowMap); // Move to builder.SetGlobalTextureAfterPass in RecordRenderGraph
             cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), m_CasterManager.VisibleCount);
             cmd.SetGlobalMatrixArray(PropertyIds.ShadowMatrices(m_CasterManager.Usage), m_ShadowMatrixArray);
             cmd.SetGlobalVectorArray(PropertyIds.ShadowMapRects(m_CasterManager.Usage), m_ShadowMapRectArray);
             cmd.SetGlobalFloatArray(PropertyIds.ShadowCasterIds(m_CasterManager.Usage), m_ShadowCasterIdArray);
         }
+        */
 
-        private void SetShadowSamplingData(CommandBuffer cmd)
+        private void RenderShadowMap(RasterCommandBuffer cmd, UniversalLightData lightData, UniversalShadowData shadowData)
+        {
+            cmd.SetGlobalDepthBias(1.0f, 2.5f); // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
+            CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.CastingPunctualLightShadow, false);
+
+            for (int i = 0; i < m_CasterManager.VisibleCount; i++)
+            {
+                m_CasterManager.GetMatrices(i, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix);
+
+                if (m_CasterManager.Usage == ShadowUsage.Scene)
+                {
+                    int mainLightIndex = lightData.mainLightIndex;
+                    VisibleLight mainLight = lightData.visibleLights[mainLightIndex];
+                    Vector4 shadowBias = ShadowUtils.GetShadowBias(ref mainLight, mainLightIndex,
+                        shadowData, projectionMatrix, m_ShadowMap.rt.width);
+                    // WTF? The overload with RasterCommandBuffer is not public?
+                    //ShadowUtils.SetupShadowCasterConstantBuffer(cmd, ref mainLight, shadowBias);
+                    NeoShadowUtils.SetupShadowCasterConstantBuffer(cmd, ref mainLight, shadowBias);
+                }
+                else if (m_CasterManager.Usage == ShadowUsage.Self)
+                {
+                    Vector4 lightDirection = m_CasterManager.GetLightDirection(i);
+                    cmd.SetGlobalVector("_LightDirection", lightDirection);
+                    CoreUtils.SetKeyword(cmd, KeywordNames._CASTING_SELF_SHADOW, true);
+                }
+                else
+                {
+                    throw new NotSupportedException($"Unsupported shadow usage: {m_CasterManager.Usage}.");
+                }
+
+                Vector2Int tilePos = new(i % m_ShadowMapSizeInTile, i / m_ShadowMapSizeInTile);
+                DrawShadow(cmd, i, tilePos, in viewMatrix, in projectionMatrix);
+                m_ShadowMatrixArray[i] = GetShadowMatrix(tilePos, in viewMatrix, projectionMatrix);
+                m_ShadowMapRectArray[i] = GetShadowMapRect(tilePos);
+                m_ShadowCasterIdArray[i] = m_CasterManager.GetId(i);
+            }
+
+            cmd.SetGlobalDepthBias(0.0f, 0.0f); // Restore previous depth bias values
+            CoreUtils.SetKeyword(cmd, KeywordNames._CASTING_SELF_SHADOW, false);
+
+            //cmd.SetGlobalTexture(PropertyIds.ShadowMap(m_CasterManager.Usage), m_ShadowMap); // Move to builder.SetGlobalTextureAfterPass in RecordRenderGraph
+            cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), m_CasterManager.VisibleCount);
+            cmd.SetGlobalMatrixArray(PropertyIds.ShadowMatrices(m_CasterManager.Usage), m_ShadowMatrixArray);
+            cmd.SetGlobalVectorArray(PropertyIds.ShadowMapRects(m_CasterManager.Usage), m_ShadowMapRectArray);
+            cmd.SetGlobalFloatArray(PropertyIds.ShadowCasterIds(m_CasterManager.Usage), m_ShadowCasterIdArray);
+        }
+        
+        private void SetShadowSamplingData(RasterCommandBuffer cmd)
         {
             int renderTargetWidth = m_ShadowMap.rt.width;
             int renderTargetHeight = m_ShadowMap.rt.height;
@@ -158,7 +212,21 @@ namespace HSR.NPRShader.Passes
                 new Vector4(invShadowAtlasWidth, invShadowAtlasHeight, renderTargetWidth, renderTargetHeight));
         }
 
+        /*
         private void DrawShadow(CommandBuffer cmd, int casterIndex, Vector2Int tilePos, in Matrix4x4 view, in Matrix4x4 proj)
+        {
+            cmd.SetViewProjectionMatrices(view, proj);
+
+            Rect viewport = new(tilePos * m_TileResolution, new Vector2(m_TileResolution, m_TileResolution));
+            cmd.SetViewport(viewport);
+
+            cmd.EnableScissorRect(new Rect(viewport.x + 4, viewport.y + 4, viewport.width - 8, viewport.height - 8));
+            m_CasterManager.Draw(cmd, casterIndex);
+            cmd.DisableScissorRect();
+        }
+        */
+        
+        private void DrawShadow(RasterCommandBuffer cmd, int casterIndex, Vector2Int tilePos, in Matrix4x4 view, in Matrix4x4 proj)
         {
             cmd.SetViewProjectionMatrices(view, proj);
 
@@ -203,6 +271,49 @@ namespace HSR.NPRShader.Passes
             return new Vector4(tilePos.x, 1 + tilePos.x, tilePos.y, 1 + tilePos.y) / m_ShadowMapSizeInTile;
         }
 
+        private class PassData
+        {
+            internal TextureHandle renderTarget; // Imported texture handle of m_ShadowMap
+            internal UniversalLightData lightData;
+            internal UniversalShadowData shadowData;
+        }
+
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+        {
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            {
+                var lightData = frameData.Get<UniversalLightData>();
+                var shadowData = frameData.Get<UniversalShadowData>();
+
+                passData.renderTarget = renderGraph.ImportTexture(m_ShadowMap);
+                builder.UseTexture(passData.renderTarget, AccessFlags.Write);
+                
+                passData.lightData = lightData;
+                passData.shadowData = shadowData;
+                
+                builder.AllowPassCulling(false);
+                builder.SetRenderAttachment(passData.renderTarget, 0, AccessFlags.Write);
+                builder.SetGlobalTextureAfterPass(passData.renderTarget, PropertyIds.ShadowMap(m_CasterManager.Usage));
+                
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
+            }
+        }
+        
+        private void ExecutePass(PassData passData, RasterGraphContext context)
+        {
+            var cmd = context.cmd;
+            
+            if (m_CasterManager.VisibleCount > 0)
+            {
+                RenderShadowMap(cmd, passData.lightData, passData.shadowData);
+                SetShadowSamplingData(cmd);
+            }
+            else
+            {
+                cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), 0);
+            }
+        }
+        
         private static class KeywordNames
         {
             public static readonly string _CASTING_SELF_SHADOW = MemberNameHelpers.String();

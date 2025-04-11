@@ -43,7 +43,7 @@ namespace HSR.NPRShader.Passes
         private readonly FilteringSettings m_FilteringSettings;
         private DownscaleMode m_DownscaleMode;
         private DepthBits m_DepthBits;
-        //private RTHandle m_DepthRT;
+        private RTHandle m_DepthRT;
 
         public HairDepthOnlyPass()
         {
@@ -55,7 +55,7 @@ namespace HSR.NPRShader.Passes
 
         public void Dispose()
         {
-            //m_DepthRT?.Release();
+            m_DepthRT?.Release();
         }
 
         public void Setup(DownscaleMode downscaleMode, DepthBits depthBits)
@@ -114,29 +114,29 @@ namespace HSR.NPRShader.Passes
         private class PassData
         {
             internal RendererListHandle rendererListHandle;
-            internal TextureHandle renderTarget; // Depth render target
+            internal TextureHandle renderTarget; // Imported texture handle of m_DepthRT
         }
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
-                // Configure
                 var renderingData = frameData.Get<UniversalRenderingData>();
                 var cameraData = frameData.Get<UniversalCameraData>();
                 var lightData = frameData.Get<UniversalLightData>();
-            
+                
+                // Configure
                 var depthDesc = cameraData.cameraTargetDescriptor;
                 depthDesc.width /= (int)m_DownscaleMode;
                 depthDesc.height /= (int)m_DownscaleMode;
                 depthDesc.msaaSamples = 1;
                 depthDesc.graphicsFormat = GraphicsFormat.None;
-
                 int depthBits = Mathf.Max((int)m_DepthBits, (int)DepthBits.Depth8);
                 depthDesc.depthStencilFormat = GraphicsFormatUtility.GetDepthStencilFormat(depthBits, 0);
                 
-                //RenderingUtils.ReAllocateHandleIfNeeded(ref m_DepthRT, in depthDesc, FilterMode.Point, TextureWrapMode.Clamp, name: "_HairDepthTexture");
-                passData.renderTarget = UniversalRenderer.CreateRenderGraphTexture(renderGraph, depthDesc, "_HairDepthTexture", true, FilterMode.Point, TextureWrapMode.Clamp);
+                RenderingUtils.ReAllocateHandleIfNeeded(ref m_DepthRT, in depthDesc, FilterMode.Point, TextureWrapMode.Clamp, name: "_HairDepthTexture");
+                passData.renderTarget = renderGraph.ImportTexture(m_DepthRT);
+                builder.UseTexture(passData.renderTarget, AccessFlags.Write);
 
                 var sortFlags = cameraData.defaultOpaqueSortFlags;
                 var drawSettings = RenderingUtils.CreateDrawingSettings(s_ShaderTagId, renderingData, cameraData, lightData, sortFlags);
@@ -145,27 +145,23 @@ namespace HSR.NPRShader.Passes
                 var rendererListParameters = new RendererListParams(renderingData.cullResults, drawSettings, m_FilteringSettings);
                 var rendererListHandle = renderGraph.CreateRendererList(rendererListParameters);
                 passData.rendererListHandle = rendererListHandle;
-                
                 builder.UseRendererList(passData.rendererListHandle);
-                builder.AllowPassCulling(false);
-                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
                 
+                builder.AllowPassCulling(false);
                 builder.SetRenderAttachment(passData.renderTarget, 0, AccessFlags.Write);
-                //builder.CreateTransientTexture(passData.renderTarget);
                 builder.SetGlobalTextureAfterPass(passData.renderTarget, PropertyIds._HairDepthTexture);
+                
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
             }
         }
         
-        private void ExecutePass(PassData passData, RasterGraphContext context)
+        private static void ExecutePass(PassData passData, RasterGraphContext context)
         {
             var cmd = context.cmd;
             
             cmd.ClearRenderTarget(true, true, Color.black);
 
-            using (new ProfilingScope(cmd, profilingSampler))
-            {
-                cmd.DrawRendererList(passData.rendererListHandle);
-            }
+            cmd.DrawRendererList(passData.rendererListHandle);
         }
         
         private static class PropertyIds
