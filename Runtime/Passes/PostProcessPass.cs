@@ -350,8 +350,7 @@ namespace HSR.NPRShader.Passes
                     colorTargetHandle = m_BloomCharacterColor;
                 }
 
-                const string UseRGBM = "_USE_RGBM"; // TODO: Check validity
-                CoreUtils.SetKeyword(material, UseRGBM, m_UseRGBM);
+                CoreUtils.SetKeyword(material, KeywordNames._USE_RGBM, m_UseRGBM);
 
                 cmd.SetGlobalFloat(PropertyIds._BloomThreshold, m_BloomConfig.Threshold.value);
                 cmd.SetGlobalFloat(PropertyIds._BloomClampMax, m_BloomConfig.Clamp.value);
@@ -459,6 +458,7 @@ namespace HSR.NPRShader.Passes
 
         private static class KeywordNames
         {
+            public static readonly string _USE_RGBM = MemberNameHelpers.String();
             public static readonly string _BLOOM = MemberNameHelpers.String();
             public static readonly string _BLOOM_USE_RGBM = MemberNameHelpers.String();
             public static readonly string _TONEMAPPING_ACES = MemberNameHelpers.String();
