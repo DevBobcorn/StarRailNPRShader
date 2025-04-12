@@ -73,12 +73,10 @@ namespace HSR.NPRShader.Passes
             int shadowRTDepthBits = Mathf.Max((int)depthBits, (int)DepthBits.Depth8);
             ShadowUtils.ShadowRTReAllocateIfNeeded(ref m_ShadowMap, shadowRTSize, shadowRTSize, shadowRTDepthBits);
 
-            // Render target configuration here is no longer allowed, move it into ExecutePass()
-            //ConfigureTarget(m_ShadowMap);
-            //ConfigureClear(ClearFlag.All, Color.black);
+            ConfigureTarget(m_ShadowMap);
+            ConfigureClear(ClearFlag.All, Color.black);
         }
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -99,9 +97,7 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
 
-        /*
         private void RenderShadowMap(CommandBuffer cmd, ref RenderingData renderingData)
         {
             cmd.SetGlobalDepthBias(1.0f, 2.5f); // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
@@ -146,7 +142,6 @@ namespace HSR.NPRShader.Passes
             cmd.SetGlobalVectorArray(PropertyIds.ShadowMapRects(m_CasterManager.Usage), m_ShadowMapRectArray);
             cmd.SetGlobalFloatArray(PropertyIds.ShadowCasterIds(m_CasterManager.Usage), m_ShadowCasterIdArray);
         }
-        */
 
         private void RenderShadowMap(RasterCommandBuffer cmd, UniversalLightData lightData, UniversalShadowData shadowData)
         {
@@ -194,7 +189,24 @@ namespace HSR.NPRShader.Passes
             cmd.SetGlobalVectorArray(PropertyIds.ShadowMapRects(m_CasterManager.Usage), m_ShadowMapRectArray);
             cmd.SetGlobalFloatArray(PropertyIds.ShadowCasterIds(m_CasterManager.Usage), m_ShadowCasterIdArray);
         }
-        
+
+        private void SetShadowSamplingData(CommandBuffer cmd)
+        {
+            int renderTargetWidth = m_ShadowMap.rt.width;
+            int renderTargetHeight = m_ShadowMap.rt.height;
+            float invShadowAtlasWidth = 1.0f / renderTargetWidth;
+            float invShadowAtlasHeight = 1.0f / renderTargetHeight;
+            float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
+            float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
+
+            cmd.SetGlobalVector(PropertyIds.ShadowOffset0(m_CasterManager.Usage),
+                new Vector4(-invHalfShadowAtlasWidth, -invHalfShadowAtlasHeight, invHalfShadowAtlasWidth, -invHalfShadowAtlasHeight));
+            cmd.SetGlobalVector(PropertyIds.ShadowOffset1(m_CasterManager.Usage),
+                new Vector4(-invHalfShadowAtlasWidth, invHalfShadowAtlasHeight, invHalfShadowAtlasWidth, invHalfShadowAtlasHeight));
+            cmd.SetGlobalVector(PropertyIds.ShadowMapSize(m_CasterManager.Usage),
+                new Vector4(invShadowAtlasWidth, invShadowAtlasHeight, renderTargetWidth, renderTargetHeight));
+        }
+
         private void SetShadowSamplingData(RasterCommandBuffer cmd)
         {
             int renderTargetWidth = m_ShadowMap.rt.width;
@@ -212,7 +224,6 @@ namespace HSR.NPRShader.Passes
                 new Vector4(invShadowAtlasWidth, invShadowAtlasHeight, renderTargetWidth, renderTargetHeight));
         }
 
-        /*
         private void DrawShadow(CommandBuffer cmd, int casterIndex, Vector2Int tilePos, in Matrix4x4 view, in Matrix4x4 proj)
         {
             cmd.SetViewProjectionMatrices(view, proj);
@@ -224,8 +235,7 @@ namespace HSR.NPRShader.Passes
             m_CasterManager.Draw(cmd, casterIndex);
             cmd.DisableScissorRect();
         }
-        */
-        
+
         private void DrawShadow(RasterCommandBuffer cmd, int casterIndex, Vector2Int tilePos, in Matrix4x4 view, in Matrix4x4 proj)
         {
             cmd.SetViewProjectionMatrices(view, proj);
@@ -271,6 +281,7 @@ namespace HSR.NPRShader.Passes
             return new Vector4(tilePos.x, 1 + tilePos.x, tilePos.y, 1 + tilePos.y) / m_ShadowMapSizeInTile;
         }
 
+        /*
         private class PassData
         {
             internal TextureHandle renderTarget; // Imported texture handle of m_ShadowMap
@@ -280,12 +291,6 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-            
-            /*
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var lightData = frameData.Get<UniversalLightData>();
@@ -303,9 +308,8 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
             }
-            */
         }
-        
+
         private void ExecutePass(PassData passData, RasterGraphContext context)
         {
             var cmd = context.cmd;
@@ -320,7 +324,8 @@ namespace HSR.NPRShader.Passes
                 cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), 0);
             }
         }
-        
+        */
+
         private static class KeywordNames
         {
             public static readonly string _CASTING_SELF_SHADOW = MemberNameHelpers.String();

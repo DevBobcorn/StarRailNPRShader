@@ -47,16 +47,13 @@ namespace HSR.NPRShader.Passes
             m_RenderTarget?.Release();
         }
 
-        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
 
             ConfigureInput(ScriptableRenderPassInput.Depth);
         }
-        */
 
-        /*
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var desc = renderingData.cameraData.cameraTargetDescriptor;
@@ -74,9 +71,7 @@ namespace HSR.NPRShader.Passes
             ConfigureTarget(m_RenderTarget);
             ConfigureClear(ClearFlag.None, Color.white);
         }
-        */
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             Material material = m_ShadowMaterial.Value;
@@ -93,8 +88,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
 
+        /*
         private class PassData
         {
             internal TextureHandle renderTarget; // Imported texture handle of m_RenderTarget
@@ -102,12 +97,6 @@ namespace HSR.NPRShader.Passes
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-            
-            /*
             using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var cameraData = frameData.Get<UniversalCameraData>();
@@ -131,7 +120,6 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
             }
-            */
         }
         
         private void ExecutePass(PassData passData, UnsafeGraphContext context)
@@ -151,5 +139,6 @@ namespace HSR.NPRShader.Passes
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, false);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowScreen, true);
         }
+        */
     }
 }

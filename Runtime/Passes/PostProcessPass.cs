@@ -98,7 +98,6 @@ namespace HSR.NPRShader.Passes
             ReleaseBloomRTHandles();
         }
 
-        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -109,9 +108,7 @@ namespace HSR.NPRShader.Passes
 
             AllocateBloomRTHandles(in cameraTextureDescriptor);
         }
-        */
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (renderingData.cameraData.isPreviewCamera || !renderingData.cameraData.postProcessEnabled)
@@ -130,8 +127,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
 
+        /*
         private class PassData
         {
             internal RenderingData renderingData; // TODO: Remove this after replacing that Blit Method
@@ -141,12 +138,6 @@ namespace HSR.NPRShader.Passes
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-            
-            /*
             using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var cameraData = frameData.Get<UniversalCameraData>();
@@ -165,7 +156,6 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
             }
-            */
         }
         
         private void ExecutePass(PassData passData, UnsafeGraphContext context)
@@ -181,6 +171,7 @@ namespace HSR.NPRShader.Passes
             ExecuteBloom(nativeCmd, passData.cameraData);
             ExecuteUber(nativeCmd, ref passData.renderingData, passData.cameraData, passData.postProcessingData);
         }
+        */
 
         #region Bloom
 
@@ -327,15 +318,14 @@ namespace HSR.NPRShader.Passes
             return m_BloomMipDown[^BloomMipDownBlurCount];
         }
 
-        [Obsolete("To be updated")]
-        private void ExecuteBloom(CommandBuffer cmd, UniversalCameraData cameraData)
+        private void ExecuteBloom(CommandBuffer cmd, ref RenderingData renderingData)
         {
             if (!m_BloomConfig.IsActive())
             {
                 return;
             }
 
-            ScriptableRenderer renderer = cameraData.renderer;
+            ScriptableRenderer renderer = renderingData.cameraData.renderer;
             RTHandle colorTargetHandle = renderer.cameraColorTargetHandle;
             Material material = m_BloomMaterial.Value;
             Vector4 scaleBias = new Vector4(1, 1, 0, 0);
@@ -350,7 +340,8 @@ namespace HSR.NPRShader.Passes
                     colorTargetHandle = m_BloomCharacterColor;
                 }
 
-                CoreUtils.SetKeyword(material, KeywordNames._USE_RGBM, m_UseRGBM);
+                const string UseRGBM = "_USE_RGBM"; // TODO: Check validity
+                CoreUtils.SetKeyword(material, UseRGBM, m_UseRGBM);
 
                 cmd.SetGlobalFloat(PropertyIds._BloomThreshold, m_BloomConfig.Threshold.value);
                 cmd.SetGlobalFloat(PropertyIds._BloomClampMax, m_BloomConfig.Clamp.value);
@@ -408,8 +399,7 @@ namespace HSR.NPRShader.Passes
 
         #region Uber
 
-        [Obsolete("To be updated")]
-        private void ExecuteUber(CommandBuffer cmd, ref RenderingData renderingData, UniversalCameraData cameraData, UniversalPostProcessingData postProcessingData)
+        private void ExecuteUber(CommandBuffer cmd, ref RenderingData renderingData)
         {
             Material material = m_UberMaterial.Value;
 
@@ -446,11 +436,9 @@ namespace HSR.NPRShader.Passes
                 }
 
                 CoreUtils.SetKeyword(material, KeywordNames._USE_FAST_SRGB_LINEAR_CONVERSION,
-                    postProcessingData.useFastSRGBLinearConversion);
+                    renderingData.postProcessingData.useFastSRGBLinearConversion);
 
                 Blit(cmd, ref renderingData, material); // TODO: Replace with Blitter.BlitCameraTexture
-                //var renderer = cameraData.renderer;
-                //Blitter.BlitCameraTexture(cmd, renderer.cameraColorTargetHandle, renderer.GetCameraColorFrontBuffer(cmd), material, 0);
             }
         }
 

@@ -37,14 +37,11 @@ namespace HSR.NPRShader.Passes
             profilingSampler = new ProfilingSampler("ScreenSpaceShadows Post");
         }
 
-        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             ConfigureTarget(k_CurrentActive);
         }
-        */
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -68,8 +65,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
 
+        /*
         private class PassData
         {
             internal TextureHandle renderTarget; // Imported texture handle of k_CurrentActive
@@ -78,12 +75,6 @@ namespace HSR.NPRShader.Passes
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-            
-            /*
             using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var shadowData = frameData.Get<UniversalShadowData>();
@@ -97,7 +88,6 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
             }
-            */
         }
         
         private void ExecutePass(PassData passData, UnsafeGraphContext context)
@@ -118,5 +108,6 @@ namespace HSR.NPRShader.Passes
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadows, receiveShadowsNoCascade);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, receiveShadowsCascades);
         }
+        */
     }
 }

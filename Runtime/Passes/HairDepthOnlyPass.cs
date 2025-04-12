@@ -40,7 +40,7 @@ namespace HSR.NPRShader.Passes
 
         private static readonly ShaderTagId s_ShaderTagId = new("HSRHairDepthOnly");
 
-        private readonly FilteringSettings m_FilteringSettings;
+        private FilteringSettings m_FilteringSettings;
         private DownscaleMode m_DownscaleMode;
         private DepthBits m_DepthBits;
         private RTHandle m_DepthRT;
@@ -64,7 +64,6 @@ namespace HSR.NPRShader.Passes
             m_DepthBits = depthBits;
         }
 
-        /*
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -84,9 +83,7 @@ namespace HSR.NPRShader.Passes
             ConfigureTarget(m_DepthRT);
             ConfigureClear(ClearFlag.All, Color.black);
         }
-        */
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -109,8 +106,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
 
+        /*
         private class PassData
         {
             internal RendererListHandle rendererListHandle;
@@ -119,12 +116,6 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-
-            /*
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var renderingData = frameData.Get<UniversalRenderingData>();
@@ -159,9 +150,8 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
             }
-            */
         }
-        
+
         private static void ExecutePass(PassData passData, RasterGraphContext context)
         {
             var cmd = context.cmd;
@@ -170,7 +160,8 @@ namespace HSR.NPRShader.Passes
 
             cmd.DrawRendererList(passData.rendererListHandle);
         }
-        
+        */
+
         private static class PropertyIds
         {
             public static readonly int _HairDepthTexture = MemberNameHelpers.ShaderPropertyID();

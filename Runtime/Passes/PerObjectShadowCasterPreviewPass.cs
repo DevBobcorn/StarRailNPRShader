@@ -38,7 +38,6 @@ namespace HSR.NPRShader.Passes
             m_Usage = usage;
         }
 
-        /*
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -51,8 +50,8 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        */
-        
+
+        /*
         private class PassData
         {
             // Nothing to store here...
@@ -60,19 +59,12 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (renderGraph.AddRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
-            {
-                
-            }
-            
-            /*
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out _, profilingSampler))
             {
                 builder.AllowPassCulling(false);
                 
                 builder.SetRenderFunc((PassData _, RasterGraphContext context) => ExecutePass(context));
             }
-            */
         }
         
         private void ExecutePass(RasterGraphContext context)
@@ -81,5 +73,6 @@ namespace HSR.NPRShader.Passes
             
             cmd.SetGlobalInt(PerObjectShadowCasterPass.PropertyIds.ShadowCount(m_Usage), 0);
         }
+        */
     }
 }

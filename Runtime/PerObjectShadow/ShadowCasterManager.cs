@@ -65,7 +65,6 @@ namespace HSR.NPRShader.PerObjectShadow
             projectionMatrix = result.ProjectionMatrix;
         }
 
-        /*
         public void Draw(CommandBuffer cmd, int index)
         {
             ref ShadowCasterCullingResult result = ref m_CullResults[index];
@@ -74,8 +73,7 @@ namespace HSR.NPRShader.PerObjectShadow
                 result.Caster.RendererList.Draw(cmd, m_RendererIndexList[i]);
             }
         }
-        */
-        
+
         public void Draw(RasterCommandBuffer cmd, int index)
         {
             ref ShadowCasterCullingResult result = ref m_CullResults[index];

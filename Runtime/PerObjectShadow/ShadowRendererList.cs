@@ -114,7 +114,6 @@ namespace HSR.NPRShader.PerObjectShadow
                    entry.Renderer.shadowCastingMode != ShadowCastingMode.Off;
         }
 
-        /*
         public void Draw(CommandBuffer cmd, int rendererIndex)
         {
             RendererEntry entry = m_Renderers[rendererIndex];
@@ -124,8 +123,7 @@ namespace HSR.NPRShader.PerObjectShadow
                 cmd.DrawRenderer(entry.Renderer, dc.Material, dc.SubmeshIndex, dc.ShaderPass);
             }
         }
-        */
-        
+
         public void Draw(RasterCommandBuffer cmd, int rendererIndex)
         {
             RendererEntry entry = m_Renderers[rendererIndex];
@@ -211,13 +209,11 @@ namespace HSR.NPRShader.PerObjectShadow
                 return m_List.TryGetWorldBounds(usage, out worldBounds, outAppendRendererIndices);
             }
 
-            /*
             public void Draw(CommandBuffer cmd, int rendererIndex)
             {
                 m_List.Draw(cmd, rendererIndex);
             }
-            */
-            
+
             public void Draw(RasterCommandBuffer cmd, int rendererIndex)
             {
                 m_List.Draw(cmd, rendererIndex);
