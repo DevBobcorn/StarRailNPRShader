@@ -136,7 +136,7 @@ namespace HSR.NPRShader.Passes
             cmd.SetGlobalDepthBias(0.0f, 0.0f); // Restore previous depth bias values
             CoreUtils.SetKeyword(cmd, KeywordNames._CASTING_SELF_SHADOW, false);
 
-            //cmd.SetGlobalTexture(PropertyIds.ShadowMap(m_CasterManager.Usage), m_ShadowMap); // Move to builder.SetGlobalTextureAfterPass in RecordRenderGraph
+            cmd.SetGlobalTexture(PropertyIds.ShadowMap(m_CasterManager.Usage), m_ShadowMap); // Move to builder.SetGlobalTextureAfterPass in RecordRenderGraph
             cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), m_CasterManager.VisibleCount);
             cmd.SetGlobalMatrixArray(PropertyIds.ShadowMatrices(m_CasterManager.Usage), m_ShadowMatrixArray);
             cmd.SetGlobalVectorArray(PropertyIds.ShadowMapRects(m_CasterManager.Usage), m_ShadowMapRectArray);

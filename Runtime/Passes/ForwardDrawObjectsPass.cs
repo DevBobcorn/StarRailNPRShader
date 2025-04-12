@@ -43,6 +43,7 @@ namespace HSR.NPRShader.Passes
                 isOpaque ? RenderQueueRange.opaque : RenderQueueRange.transparent,
                 layerMask, new StencilState(), 0) { }
         
+        /*
         private class PassData
         {
             // Nothing to store here...
@@ -55,5 +56,6 @@ namespace HSR.NPRShader.Passes
                 
             }
         }
+        */
     }
 }
