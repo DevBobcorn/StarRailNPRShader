@@ -77,6 +77,7 @@ namespace HSR.NPRShader.Passes
             ConfigureClear(ClearFlag.All, Color.black);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -281,7 +282,6 @@ namespace HSR.NPRShader.Passes
             return new Vector4(tilePos.x, 1 + tilePos.x, tilePos.y, 1 + tilePos.y) / m_ShadowMapSizeInTile;
         }
 
-        /*
         private class PassData
         {
             internal TextureHandle renderTarget; // Imported texture handle of m_ShadowMap
@@ -291,6 +291,7 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
+            /*
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var lightData = frameData.Get<UniversalLightData>();
@@ -308,6 +309,7 @@ namespace HSR.NPRShader.Passes
                 
                 builder.SetRenderFunc((PassData pd, RasterGraphContext context) => ExecutePass(pd, context));
             }
+            */
         }
 
         private void ExecutePass(PassData passData, RasterGraphContext context)
@@ -324,7 +326,6 @@ namespace HSR.NPRShader.Passes
                 cmd.SetGlobalInt(PropertyIds.ShadowCount(m_CasterManager.Usage), 0);
             }
         }
-        */
 
         private static class KeywordNames
         {

@@ -128,6 +128,8 @@ namespace HSR.NPRShader
             {
                 renderer.EnqueuePass(m_HairDepthOnlyPass);
             }
+            
+            m_ScreenSpaceShadowPass.NeoSetup();
 
             // AfterRenderingGbuffer
             renderer.EnqueuePass(m_ForceDepthPrepassPass); // 保证 RimLight、眼睛等需要深度图的效果正常工作

@@ -32,21 +32,33 @@ namespace HSR.NPRShader.Passes
     public class ScreenSpaceShadowsPass : ScriptableRenderPass, IDisposable
     {
         private readonly LazyMaterial m_ShadowMaterial = new(StarRailBuiltinShaders.ScreenSpaceShadowsShader);
-
+#if STARRAIL_URP_COMPATIBILITY_MODE
         private RTHandle m_RenderTarget;
+#endif
+        private int m_ScreenSpaceShadowmapTextureID;
 
         public ScreenSpaceShadowsPass()
         {
             renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
             profilingSampler = new ProfilingSampler("ScreenSpaceShadows");
+            m_ScreenSpaceShadowmapTextureID = Shader.PropertyToID("_ScreenSpaceShadowmapTexture");
         }
 
         public void Dispose()
         {
             m_ShadowMaterial.DestroyCache();
-            m_RenderTarget?.Release();
+#if STARRAIL_URP_COMPATIBILITY_MODE
+            m_RenderTarget?.Release(); // For Non-RG path
+#endif
         }
 
+        public void NeoSetup()
+        {
+            ConfigureInput(ScriptableRenderPassInput.Depth);
+        }
+
+#if STARRAIL_URP_COMPATIBILITY_MODE
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -54,6 +66,7 @@ namespace HSR.NPRShader.Passes
             ConfigureInput(ScriptableRenderPassInput.Depth);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var desc = renderingData.cameraData.cameraTargetDescriptor;
@@ -72,6 +85,7 @@ namespace HSR.NPRShader.Passes
             ConfigureClear(ClearFlag.None, Color.white);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             Material material = m_ShadowMaterial.Value;
@@ -88,57 +102,53 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+#endif
 
-        /*
         private class PassData
         {
-            internal TextureHandle renderTarget; // Imported texture handle of m_RenderTarget
+            public TextureHandle target;
+            public Material material;
+            internal int shadowmapID;
         }
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            var cameraData = frameData.Get<UniversalCameraData>();
+
+            var desc = cameraData.cameraTargetDescriptor;
+            desc.depthBufferBits = 0;
+            desc.msaaSamples = 1;
+            desc.graphicsFormat =
+                SystemInfo.IsFormatSupported(GraphicsFormat.R8_UNorm, GraphicsFormatUsage.Linear | GraphicsFormatUsage.Render)
+                    ? GraphicsFormat.R8_UNorm
+                    : GraphicsFormat.B8G8R8A8_UNorm;
+            TextureHandle color = UniversalRenderer.CreateRenderGraphTexture(renderGraph, desc, "_ScreenSpaceShadowmapTexture", true);
+            
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
-                var cameraData = frameData.Get<UniversalCameraData>();
+                builder.SetRenderAttachment(color, 0, AccessFlags.Write);
                 
-                ConfigureInput(ScriptableRenderPassInput.Depth);
-
-                var desc = cameraData.cameraTargetDescriptor;
-                desc.depthBufferBits = 0;
-                desc.msaaSamples = 1;
-                desc.graphicsFormat =
-                    SystemInfo.IsFormatSupported(GraphicsFormat.R8_UNorm, GraphicsFormatUsage.Linear | GraphicsFormatUsage.Render)
-                        ? GraphicsFormat.R8_UNorm
-                        : GraphicsFormat.B8G8R8A8_UNorm;
-
-                RenderingUtils.ReAllocateHandleIfNeeded(ref m_RenderTarget, desc, FilterMode.Point, TextureWrapMode.Clamp,
-                    name: "_ScreenSpaceShadowmapTexture");
-                passData.renderTarget = renderGraph.ImportTexture(m_RenderTarget);
-                builder.UseTexture(passData.renderTarget);
+                passData.material = m_ShadowMaterial.Value;
+                passData.target = color;
+                passData.shadowmapID = m_ScreenSpaceShadowmapTextureID;
+                builder.AllowGlobalStateModification(true);
                 
-                builder.AllowPassCulling(false);
+                if (color.IsValid())
+                    builder.SetGlobalTextureAfterPass(color, m_ScreenSpaceShadowmapTextureID);
                 
-                builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) =>
+                {
+                    ExecutePass(context.cmd, pd, passData.target);
+                });
             }
         }
         
-        private void ExecutePass(PassData passData, UnsafeGraphContext context)
+        private static void ExecutePass(RasterCommandBuffer cmd, PassData passData, RTHandle target)
         {
-            var cmd = context.cmd;
-            
-            cmd.SetGlobalTexture(m_RenderTarget.name, passData.renderTarget);
-            
-            cmd.SetRenderTarget(passData.renderTarget);
-            cmd.ClearRenderTarget(false, false, Color.white);
-            
-            var nativeCmd = CommandBufferHelpers.GetNativeCommandBuffer(cmd);
-            var material = m_ShadowMaterial.Value;
-            
-            Blitter.BlitCameraTexture(nativeCmd, m_RenderTarget, m_RenderTarget, material, 0);
+            Blitter.BlitTexture(cmd, target, Vector2.one, passData.material, 0);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadows, false);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, false);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowScreen, true);
         }
-        */
     }
 }

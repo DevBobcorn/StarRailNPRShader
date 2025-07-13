@@ -19,6 +19,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
@@ -27,8 +28,12 @@ namespace HSR.NPRShader.Passes
 {
     public class SetKeywordPass : ScriptableRenderPass
     {
+        #region PASS_FIELDS
+        
         private readonly string m_Keyword;
         private readonly bool m_State;
+        
+        #endregion
 
         public SetKeywordPass(string keyword, bool state, RenderPassEvent evt)
         {
@@ -38,6 +43,7 @@ namespace HSR.NPRShader.Passes
             m_State = state;
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -46,7 +52,6 @@ namespace HSR.NPRShader.Passes
             CommandBufferPool.Release(cmd);
         }
 
-        /*
         private class PassData
         {
             // Nothing to store here...
@@ -68,6 +73,5 @@ namespace HSR.NPRShader.Passes
             
             CoreUtils.SetKeyword(cmd, m_Keyword, m_State);
         }
-        */
     }
 }

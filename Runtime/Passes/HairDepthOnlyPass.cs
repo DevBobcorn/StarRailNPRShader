@@ -64,6 +64,7 @@ namespace HSR.NPRShader.Passes
             m_DepthBits = depthBits;
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -84,6 +85,7 @@ namespace HSR.NPRShader.Passes
             ConfigureClear(ClearFlag.All, Color.black);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -107,7 +109,6 @@ namespace HSR.NPRShader.Passes
             CommandBufferPool.Release(cmd);
         }
 
-        /*
         private class PassData
         {
             internal RendererListHandle rendererListHandle;
@@ -116,6 +117,12 @@ namespace HSR.NPRShader.Passes
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
+            if ((int)m_DownscaleMode == 0)
+            {
+                Debug.LogWarning($"Downscale mode is not set!");
+                return;
+            }
+            
             using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
                 var renderingData = frameData.Get<UniversalRenderingData>();
@@ -160,7 +167,6 @@ namespace HSR.NPRShader.Passes
 
             cmd.DrawRendererList(passData.rendererListHandle);
         }
-        */
 
         private static class PropertyIds
         {

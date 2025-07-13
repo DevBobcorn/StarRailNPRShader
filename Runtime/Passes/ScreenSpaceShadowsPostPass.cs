@@ -19,6 +19,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -29,7 +30,9 @@ namespace HSR.NPRShader.Passes
 {
     public class ScreenSpaceShadowsPostPass : ScriptableRenderPass
     {
+#if STARRAIL_URP_COMPATIBILITY_MODE
         private static readonly RTHandle k_CurrentActive = RTHandles.Alloc(BuiltinRenderTextureType.CurrentActive);
+#endif
 
         public ScreenSpaceShadowsPostPass()
         {
@@ -37,11 +40,14 @@ namespace HSR.NPRShader.Passes
             profilingSampler = new ProfilingSampler("ScreenSpaceShadows Post");
         }
 
+#if STARRAIL_URP_COMPATIBILITY_MODE
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             ConfigureTarget(k_CurrentActive);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -65,37 +71,34 @@ namespace HSR.NPRShader.Passes
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+#endif
 
-        /*
         private class PassData
         {
-            internal TextureHandle renderTarget; // Imported texture handle of k_CurrentActive
             internal UniversalShadowData shadowData;
         }
         
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            using (var builder = renderGraph.AddUnsafePass<PassData>(GetType().ToString(), out var passData, profilingSampler))
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>(GetType().ToString(), out var passData, profilingSampler))
             {
-                var shadowData = frameData.Get<UniversalShadowData>();
-                
-                passData.renderTarget = renderGraph.ImportTexture(k_CurrentActive);
-                builder.UseTexture(passData.renderTarget);
-                
-                passData.shadowData = shadowData;
+                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+
+                TextureHandle color = resourceData.activeColorTexture;
+                builder.SetRenderAttachment(color, 0, AccessFlags.Write);
+                passData.shadowData = frameData.Get<UniversalShadowData>();
                 
                 builder.AllowPassCulling(false);
                 
-                builder.SetRenderFunc((PassData pd, UnsafeGraphContext context) => ExecutePass(pd, context));
+                builder.SetRenderFunc((PassData pd, RasterGraphContext context) =>
+                {
+                    ExecutePass(context.cmd, pd);
+                });
             }
         }
         
-        private void ExecutePass(PassData passData, UnsafeGraphContext context)
+        private static void ExecutePass(RasterCommandBuffer cmd, PassData passData)
         {
-            var cmd = context.cmd;
-            
-            cmd.SetRenderTarget(passData.renderTarget);
-            
             int cascadesCount = passData.shadowData.mainLightShadowCascadesCount;
             bool mainLightShadows = passData.shadowData.supportsMainLightShadows;
             bool receiveShadowsNoCascade = mainLightShadows && cascadesCount == 1;
@@ -108,6 +111,5 @@ namespace HSR.NPRShader.Passes
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadows, receiveShadowsNoCascade);
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.MainLightShadowCascades, receiveShadowsCascades);
         }
-        */
     }
 }

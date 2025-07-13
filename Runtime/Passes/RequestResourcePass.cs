@@ -19,6 +19,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
@@ -33,12 +34,12 @@ namespace HSR.NPRShader.Passes
             ConfigureInput(passInput);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             
         }
 
-        /*
         private class PassData
         {
             // Nothing to store here...
@@ -53,6 +54,5 @@ namespace HSR.NPRShader.Passes
                 builder.SetRenderFunc((PassData _, RasterGraphContext _) => { });
             }
         }
-        */
     }
 }

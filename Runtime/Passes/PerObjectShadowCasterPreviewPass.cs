@@ -19,6 +19,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
 using HSR.NPRShader.PerObjectShadow;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -38,6 +39,7 @@ namespace HSR.NPRShader.Passes
             m_Usage = usage;
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -51,7 +53,6 @@ namespace HSR.NPRShader.Passes
             CommandBufferPool.Release(cmd);
         }
 
-        /*
         private class PassData
         {
             // Nothing to store here...
@@ -73,6 +74,5 @@ namespace HSR.NPRShader.Passes
             
             cmd.SetGlobalInt(PerObjectShadowCasterPass.PropertyIds.ShadowCount(m_Usage), 0);
         }
-        */
     }
 }

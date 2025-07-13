@@ -98,6 +98,7 @@ namespace HSR.NPRShader.Passes
             ReleaseBloomRTHandles();
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             base.Configure(cmd, cameraTextureDescriptor);
@@ -109,6 +110,7 @@ namespace HSR.NPRShader.Passes
             AllocateBloomRTHandles(in cameraTextureDescriptor);
         }
 
+        [Obsolete("This rendering path is for compatibility mode only (when Render Graph is disabled). Use Render Graph API instead.", false)]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (renderingData.cameraData.isPreviewCamera || !renderingData.cameraData.postProcessEnabled)
